@@ -32,13 +32,13 @@
     overflow:hidden !important;
   }
 
-  /* Flat Premium Header */
+  /* Flat Header */
   header{
     background:var(--card); padding:10px 14px 8px; border-bottom:1px solid var(--border);
     flex-shrink:0; width:100%;
   }
   .top-bar{display:flex; gap:8px; align-items:center; margin-bottom:8px; width:100%;}
-  .top-bar .title{font-size:15px; font-weight:800; white-space:nowrap; display:flex; align-items:center; gap:5px; color:var(--ink);}
+  .top-bar .title{font-size:15px; font-weight:800; white-space:nowrap; display:flex; align-items:center; gap:4px; color:var(--ink);}
   .top-bar select{
     flex:1; padding:6px 10px; border-radius:10px; border:1px solid var(--border);
     background:var(--bg); font-size:13px; color:var(--ink); font-family:inherit; font-weight:600;
@@ -46,11 +46,11 @@
   }
   .top-bar button{
     background:var(--bg); border:1px solid var(--border); border-radius:10px;
-    font-size:14px; width:32px; height:32px; cursor:pointer; flex-shrink:0;
+    font-size:15px; width:34px; height:34px; cursor:pointer; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; color:var(--muted);
+    transition:background .1s;
   }
   .top-bar button:active{background:#e2e8f0;}
-  .top-bar button.danger:active{color:#ef4444;}
 
   .month-nav{display:flex; align-items:center; justify-content:space-between; width:100%;}
   .month-nav button{
@@ -77,7 +77,7 @@
     font-size:11px; cursor:pointer; padding:0; margin-right:4px; font-weight:600;
   }
 
-  /* Main Calendar - Sizing refined & slightly smaller */
+  /* Main Calendar - Sizing slightly smaller */
   main{
     flex:1; display:flex; flex-direction:column; padding:6px 10px 4px;
     min-height:0; width:100%; overflow:hidden !important;
@@ -146,7 +146,6 @@
   }
   @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
 
-  /* Drag handle indicator */
   .drag-handle{
     width:36px; height:4px; background:#cbd5e1; border-radius:2px;
     margin:0 auto 12px;
@@ -154,13 +153,14 @@
   .sheet h2{margin:0 0 4px; font-size:17px; text-align:center; font-weight:800;}
   .sheet .date-subtitle{text-align:center; color:var(--muted); font-size:12.5px; margin-bottom:14px; font-weight:600;}
 
-  /* Shift Edit Sections */
-  .shift-section{
-    background:var(--bg); border-radius:14px; padding:10px 12px; margin-bottom:10px; border:1px solid var(--border);
+  /* Section cards inside modals */
+  .modal-section{
+    background:var(--bg); border-radius:14px; padding:12px; margin-bottom:12px; border:1px solid var(--border);
   }
-  .shift-section-header{
-    display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-weight:700; font-size:13.5px;
+  .modal-section-title{
+    font-weight:800; font-size:13.5px; margin-bottom:8px; color:var(--ink); display:flex; align-items:center; gap:6px;
   }
+
   .shift-options{display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;}
   .sheet button.opt{
     padding:10px 8px; border-radius:10px; border:1.5px solid var(--border); font-size:13.5px; font-weight:700;
@@ -184,8 +184,9 @@
   }
   .sheet .btn-sec{
     margin-top:6px; width:100%; padding:10px; border:1px solid var(--border); background:var(--bg);
-    border-radius:12px; font-size:13.5px; font-weight:600; cursor:pointer; color:var(--muted);
+    border-radius:12px; font-size:13.5px; font-weight:600; cursor:pointer; color:var(--ink);
   }
+  .sheet .btn-sec:active{background:#e2e8f0;}
 
   /* Report Table */
   .report-table{width:100%; border-collapse:collapse; margin-top:6px;}
@@ -216,7 +217,7 @@
   .guard-row .del:active{color:#ef4444;}
   .add-guard-btn{width:100%; padding:11px; border:1.5px dashed var(--border); border-radius:12px; background:none; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer;}
 
-  /* Flat Modern Color Picker (Inspired by reference palette) */
+  /* Flat Modern Color Picker */
   .color-picker-card{
     background:var(--card); width:92%; max-width:350px; border-radius:24px;
     padding:16px 18px 18px; text-align:center; animation:popIn .18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -247,7 +248,7 @@
       <div class="title">🗓️ משמרות:</div>
       <select id="calendarSelect"></select>
       <button id="addCalendarBtn" title="יומן חדש">➕</button>
-      <button id="delCalendarBtn" class="danger" title="מחק יומן">🗑️</button>
+      <button id="settingsTopBtn" title="הגדרות וניהול">⚙️</button>
     </div>
     <div class="month-nav">
       <button id="prevBtn">‹</button>
@@ -270,7 +271,7 @@
   <div class="bottom-bar">
     <button class="primary" id="reportBtn">📊 דוח</button>
     <button id="guardsBtn">👥 שומרים</button>
-    <button id="backupBtn">💾 גיבוי</button>
+    <button id="settingsBtn">⚙️ הגדרות</button>
   </div>
 </div>
 
@@ -282,19 +283,17 @@
     <div class="date-subtitle" id="daySubtitle"></div>
 
     <!-- Day Shift Section -->
-    <div class="shift-section">
-      <div class="shift-section-header">
+    <div class="modal-section">
+      <div class="modal-section-title">
         <span>☀️ משמרת יום (בוקר)</span>
-        <span style="font-size:11.5px; color:var(--muted);">בחר שומר</span>
       </div>
       <div class="shift-options" id="dayShiftList"></div>
     </div>
 
     <!-- Night Shift Section -->
-    <div class="shift-section">
-      <div class="shift-section-header">
+    <div class="modal-section">
+      <div class="modal-section-title">
         <span>🌙 משמרת לילה</span>
-        <span style="font-size:11.5px; color:var(--muted);">בחר שומר</span>
       </div>
       <div class="shift-options" id="nightShiftList"></div>
     </div>
@@ -317,7 +316,7 @@
     <h2>📊 דוח וסיכום משמרות</h2>
     <div id="reportBody"></div>
     <button class="close" id="shareWhatsAppBtn" style="background:#22c55e; margin-top:14px;">📲 שתף סיכום ל-WhatsApp</button>
-    <button class="btn-sec" id="exportCsvBtn" style="margin-top:6px;">⬇️ הורד קובץ דוח (CSV)</button>
+    <button class="btn-sec" id="exportCsvReportBtn" style="margin-top:6px;">⬇️ הורד קובץ דוח (CSV)</button>
     <button class="btn-sec" id="reportClose" style="margin-top:6px;">סגור</button>
   </div>
 </div>
@@ -333,6 +332,44 @@
   </div>
 </div>
 
+<!-- Settings & Management Overlay -->
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="drag-handle"></div>
+    <h2>⚙️ הגדרות וניהול יומן</h2>
+    <div class="date-subtitle">ייצוא, ייבוא, גיבוי וניהול יומנים</div>
+
+    <!-- Export & Share Section -->
+    <div class="modal-section">
+      <div class="modal-section-title">📤 ייצוא וגיבוי</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn-sec" id="settingsExportCsvBtn">⬇️ ייצוא משמרות לקובץ CSV</button>
+        <button class="btn-sec" id="settingsBackupJsonBtn">💾 הורדת קובץ גיבוי מלא (JSON)</button>
+      </div>
+    </div>
+
+    <!-- Import & Restore Section -->
+    <div class="modal-section">
+      <div class="modal-section-title">📥 ייבוא ושחזור</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn-sec" id="settingsImportCsvBtn">⬆️ ייבוא משמרות מקובץ CSV</button>
+        <button class="btn-sec" id="settingsRestoreJsonBtn">🔄 שחזור נתונים מקובץ גיבוי (JSON)</button>
+      </div>
+    </div>
+
+    <!-- Calendar Management Section -->
+    <div class="modal-section">
+      <div class="modal-section-title">🗓️ ניהול יומנים</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn-sec" id="settingsNewCalBtn">➕ צור יומן חדש</button>
+        <button class="btn-sec" id="settingsDelCalBtn" style="color:#ef4444;">🗑️ מחק יומן פעיל נוכחי</button>
+      </div>
+    </div>
+
+    <button class="close" id="settingsClose" style="margin-top:6px;">סגור</button>
+  </div>
+</div>
+
 <!-- Color Picker Overlay -->
 <div class="overlay center" id="colorPickerOverlay">
   <div class="color-picker-card">
@@ -344,24 +381,8 @@
   </div>
 </div>
 
-<!-- Backup Overlay -->
-<div class="overlay" id="backupOverlay">
-  <div class="sheet">
-    <div class="drag-handle"></div>
-    <h2>💾 גיבוי ושחזור נתונים</h2>
-    <p style="font-size:13px; color:var(--muted); line-height:1.4; text-align:center; margin-bottom:12px;">
-      כל הנתונים נשמרים במכשיר. אפשר להוריד קובץ גיבוי או לשחזר בכל עת.
-    </p>
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      <button class="btn-sec" id="downloadBackupBtn" style="color:var(--ink); font-weight:700;">⬇️ הורד קובץ גיבוי מלא (JSON)</button>
-      <button class="btn-sec" id="restoreBackupBtn" style="color:var(--ink); font-weight:700;">⬆️ שחזר נתונים מקובץ גיבוי</button>
-      <input type="file" id="backupFileInput" accept=".json,application/json">
-    </div>
-    <button class="close" id="backupClose" style="margin-top:12px;">סגור</button>
-  </div>
-</div>
-
-<input type="file" id="importCsvFile" accept=".csv,text/csv">
+<input type="file" id="importCsvInput" accept=".csv,text/csv">
+<input type="file" id="backupJsonInput" accept=".json,application/json">
 
 <script>
 (function(){
@@ -373,7 +394,7 @@
 
   var STORAGE_KEY_V2 = 'uzi_shift_tracker_v2';
 
-  // 22 Curated Flat & Vibrant Colors (from reference palette)
+  // 22 Flat & Vibrant Colors (matching reference image)
   var PALETTE = [
     { name: 'תכלת שמיים', color: '#60a5fa' },
     { name: 'אינדיגו', color: '#6366f1' },
@@ -526,7 +547,8 @@
     save();
     renderAll();
   });
-  document.getElementById('addCalendarBtn').addEventListener('click', function(){
+
+  function createNewCalendarPrompt(){
     var name = window.prompt('שם היומן החדש:');
     if(!name || !name.trim()) return;
     var id = uid('c');
@@ -543,8 +565,9 @@
     activeFilters = {};
     save();
     renderAll();
-  });
-  document.getElementById('delCalendarBtn').addEventListener('click', function(){
+  }
+
+  function deleteCurrentCalendarPrompt(){
     if(state.order.length <= 1){
       alert('חייב להישאר לפחות יומן אחד.');
       return;
@@ -557,7 +580,9 @@
     activeFilters = {};
     save();
     renderAll();
-  });
+  }
+
+  document.getElementById('addCalendarBtn').addEventListener('click', createNewCalendarPrompt);
 
   function renderLegend(){
     var legend = document.getElementById('legend');
@@ -967,7 +992,6 @@
     }
   }
 
-  // Color Picker Dialog (22 Palette colors)
   function openColorPicker(guard){
     currentEditingGuard = guard;
     document.getElementById('colorPickerTitle').textContent = 'בחר צבע עבור ' + (guard.name || 'שומר');
@@ -1022,18 +1046,31 @@
     if(e.target === this) this.classList.remove('show');
   });
 
-  // Backup & Restore
-  document.getElementById('backupBtn').addEventListener('click', function(){
-    document.getElementById('backupOverlay').classList.add('show');
-  });
-  document.getElementById('backupClose').addEventListener('click', function(){
-    document.getElementById('backupOverlay').classList.remove('show');
-  });
-  document.getElementById('backupOverlay').addEventListener('click', function(e){
-    if(e.target === this) this.classList.remove('show');
+  // Settings Modal Handlers
+  function openSettings(){
+    document.getElementById('settingsOverlay').classList.add('show');
+  }
+  function closeSettings(){
+    document.getElementById('settingsOverlay').classList.remove('show');
+  }
+  document.getElementById('settingsTopBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsClose').addEventListener('click', closeSettings);
+  document.getElementById('settingsOverlay').addEventListener('click', function(e){
+    if(e.target === this) closeSettings();
   });
 
-  document.getElementById('downloadBackupBtn').addEventListener('click', function(){
+  document.getElementById('settingsNewCalBtn').addEventListener('click', function(){
+    closeSettings();
+    createNewCalendarPrompt();
+  });
+  document.getElementById('settingsDelCalBtn').addEventListener('click', function(){
+    closeSettings();
+    deleteCurrentCalendarPrompt();
+  });
+
+  // JSON Backup & Restore
+  function downloadBackupJson(){
     var dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state, null, 2));
     var a = document.createElement('a');
     a.href = dataStr;
@@ -1041,13 +1078,14 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  }
+  document.getElementById('settingsBackupJsonBtn').addEventListener('click', downloadBackupJson);
+
+  document.getElementById('settingsRestoreJsonBtn').addEventListener('click', function(){
+    document.getElementById('backupJsonInput').click();
   });
 
-  document.getElementById('restoreBackupBtn').addEventListener('click', function(){
-    document.getElementById('backupFileInput').click();
-  });
-
-  document.getElementById('backupFileInput').addEventListener('change', function(e){
+  document.getElementById('backupJsonInput').addEventListener('change', function(e){
     var file = e.target.files[0];
     if(!file) return;
     var reader = new FileReader();
@@ -1059,7 +1097,7 @@
           save();
           renderAll();
           alert('הנתונים שוחזרו בהצלחה!');
-          document.getElementById('backupOverlay').classList.remove('show');
+          closeSettings();
         } else {
           alert('קובץ הגיבוי אינו תקין.');
         }
@@ -1070,11 +1108,11 @@
     reader.readAsText(file);
   });
 
-  // Export CSV
+  // CSV Export & Import
   function csvEscape(v){
     return '"' + String(v||'').replace(/"/g,'""') + '"';
   }
-  document.getElementById('exportCsvBtn').addEventListener('click', function(){
+  function exportCsvFile(){
     var c = cal();
     var lines = [csvEscape('תאריך') + ',' + csvEscape('משמרת יום') + ',' + csvEscape('משמרת לילה') + ',' + csvEscape('הערה')];
     var keys = Object.keys(c.shifts).sort();
@@ -1094,6 +1132,86 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+  document.getElementById('settingsExportCsvBtn').addEventListener('click', exportCsvFile);
+  document.getElementById('exportCsvReportBtn').addEventListener('click', exportCsvFile);
+
+  function parseCsvLine(line){
+    var out = []; var cur = ''; var inQuotes = false;
+    for(var i=0;i<line.length;i++){
+      var ch = line[i];
+      if(inQuotes){
+        if(ch === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; }
+          else inQuotes = false;
+        } else cur += ch;
+      } else {
+        if(ch === '"') inQuotes = true;
+        else if(ch === ','){ out.push(cur); cur=''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  document.getElementById('settingsImportCsvBtn').addEventListener('click', function(){
+    document.getElementById('importCsvInput').click();
+  });
+
+  document.getElementById('importCsvInput').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result).replace(/^﻿/, '');
+      var lines = text.split(/\r\n|\n/).filter(function(l){ return l.trim().length; });
+      var c = cal();
+      var dateRe = /^\d{4}-\d{2}-\d{2}$/;
+      var imported = 0, skipped = 0;
+
+      for(var i=0;i<lines.length;i++){
+        var cols = parseCsvLine(lines[i]);
+        var dateStr = (cols[0]||'').trim();
+        if(!dateRe.test(dateStr)) { skipped++; continue; }
+
+        var dayNames = (cols[1]||'').split(';').map(function(n){ return n.trim(); }).filter(Boolean);
+        var nightNames = (cols[2]||'').split(';').map(function(n){ return n.trim(); }).filter(Boolean);
+        var note = (cols[3]||'').trim();
+
+        function getOrAddGuards(nameList){
+          var ids = [];
+          for(var n=0;n<nameList.length;n++){
+            var g = null;
+            for(var gi=0; gi<c.guards.length; gi++){
+              if(c.guards[gi].name === nameList[n]){ g = c.guards[gi]; break; }
+            }
+            if(!g){
+              var used = c.guards.map(function(x){ return x.color; });
+              g = { id:uid('g'), name:nameList[n], color: nextColor(used) };
+              c.guards.push(g);
+            }
+            ids.push(g.id);
+          }
+          return ids;
+        }
+
+        var dIds = getOrAddGuards(dayNames);
+        var nIds = getOrAddGuards(nightNames);
+
+        if(dIds.length || nIds.length || note){
+          c.shifts[dateStr] = { day: dIds, night: nIds, note: note };
+          imported++;
+        }
+      }
+
+      save();
+      renderAll();
+      alert('יובאו בהצלחה ' + imported + ' ימים!');
+      closeSettings();
+      document.getElementById('importCsvInput').value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
   });
 
   function renderAll(){
