@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>יומן משמרות</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c1e21">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="משמרות">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --ink:#1c1e21; --muted:#6b7280;
+    --border:#e5e7eb; --day-color:#ca8a04; --night-color:#4f46e5;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Heebo,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); direction:rtl;
+    padding-bottom:40px; user-select:none; -webkit-user-select:none;
+  }
+  header{
+    background:var(--card); padding:14px 16px 10px; border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:10;
+  }
+  h1{font-size:19px; margin:0 0 10px; text-align:center; font-weight:800;}
+
+  .cal-row{display:flex; gap:8px; align-items:center; margin-bottom:10px;}
+  .cal-row select{
+    flex:1; padding:9px 12px; border-radius:12px; border:1px solid var(--border);
+    background:var(--card); font-size:15px; color:var(--ink); font-family:inherit; font-weight:600;
+  }
+  .cal-row button{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    font-size:17px; width:40px; height:40px; cursor:pointer; flex-shrink:0;
+  }
+  .cal-row button.danger{color:#e0463e;}
+
+  .month-nav{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .month-nav button{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    font-size:22px; width:44px; height:42px; cursor:pointer; font-weight:bold;
+  }
+  .month-title{font-size:17px; font-weight:700; min-width:140px; text-align:center;}
+
+  .legend{display:flex; gap:6px; justify-content:center; margin-top:10px; flex-wrap:wrap;}
+  .legend .chip{
+    display:flex; align-items:center; gap:5px; background:var(--bg); border:2px solid transparent;
+    border-radius:20px; padding:5px 10px; font-size:12.5px; cursor:pointer; font-weight:600;
+  }
+  .legend .chip.active{border-color:var(--chip-color, var(--ink)); background:#fff;}
+  .legend .chip.dim{opacity:.35;}
+  .dot{width:12px; height:12px; border-radius:50%; display:inline-block; flex-shrink:0;}
+  .filter-hint{text-align:center; font-size:12px; color:var(--muted); margin-top:6px;}
+  .filter-hint button{
+    background:none; border:none; color:var(--ink); text-decoration:underline;
+    font-size:12px; cursor:pointer; padding:0; margin-right:4px; font-weight:600;
+  }
+
+  main{padding:12px 14px; max-width:520px; margin:0 auto;}
+  .weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; color:var(--muted); font-size:13px; font-weight:700; margin-bottom:6px;}
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .day{
+    min-height:68px; aspect-ratio:0.88; background:var(--card); border:1px solid var(--border); border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:3px 2px; font-size:13px; cursor:pointer; position:relative;
+    transition:transform .1s, opacity .15s, border-color .15s;
+  }
+  .day:active{transform:scale(0.96);}
+  .day.empty{background:transparent; border:none; cursor:default; min-height:0; aspect-ratio:auto;}
+  .day.today{border:2px solid var(--ink); font-weight:bold;}
+  .day.dimmed{opacity:.2;}
+  .day .num{font-size:13.5px; font-weight:700; margin-bottom:2px; line-height:1.2;}
+
+  /* shift badges on calendar cell */
+  .day .shifts-wrap{width:100%; display:flex; flex-direction:column; gap:2px;}
+  .day .badge{
+    font-size:9px; line-height:1.2; padding:1px 3px; border-radius:4px;
+    display:flex; align-items:center; gap:2px; width:96%; margin:0 auto;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;
+  }
+  .day .badge.day-shift{background:rgba(202, 138, 4, 0.14); color:#854d0e;}
+  .day .badge.night-shift{background:rgba(79, 70, 229, 0.14); color:#3730a3;}
+  .day .badge .mini-dot{width:6px; height:6px; border-radius:50%; flex-shrink:0;}
+  .day .badge .badge-icon{font-size:8.5px; flex-shrink:0;}
+  .day .note-dot{position:absolute; bottom:2px; left:2px; font-size:9px;}
+
+  .actions{display:flex; gap:8px; margin-top:12px;}
+  .actions button{
+    flex:1; padding:13px; border-radius:12px; border:none; font-size:14.5px; font-weight:700;
+    cursor:pointer; background:var(--card); border:1px solid var(--border); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .actions button.primary{background:var(--ink); color:#fff;}
+  .actions button.whatsapp{background:#25D366; color:#fff; border:none;}
+
+  /* modals */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.5); display:none;
+    align-items:flex-end; justify-content:center; z-index:30;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:var(--card); width:100%; max-width:520px; border-radius:22px 22px 0 0;
+    padding:18px 18px 24px; animation:up .18s ease-out; max-height:88vh; overflow-y:auto;
+  }
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .sheet h2{margin:0 0 12px; font-size:17.5px; text-align:center; font-weight:800;}
+  .sheet .date-subtitle{text-align:center; color:var(--muted); font-size:13px; margin:-8px 0 14px; font-weight:600;}
+
+  /* day edit sections */
+  .shift-section{
+    background:var(--bg); border-radius:14px; padding:12px; margin-bottom:12px; border:1px solid var(--border);
+  }
+  .shift-section-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-weight:700; font-size:14px;
+  }
+  .shift-options{display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;}
+  .sheet button.opt{
+    padding:11px 8px; border-radius:10px; border:2px solid var(--border); font-size:14px; font-weight:700;
+    background:var(--card); cursor:pointer; display:flex; align-items:center; gap:6px; justify-content:center;
+    position:relative; transition:all .1s;
+  }
+  .sheet button.opt.selected{border-color:var(--opt-color, var(--ink)); background:var(--opt-bg, #fff);}
+  .sheet button.opt .opt-dot{width:12px; height:12px; border-radius:50%; flex-shrink:0;}
+  .sheet button.opt .check{font-size:13px;}
+
+  .note-input{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    font-size:14px; font-family:inherit; margin-top:4px; box-sizing:border-box;
+  }
+
+  .sheet .close{
+    margin-top:10px; width:100%; padding:13px; border:none; background:var(--ink);
+    color:#fff; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .sheet .btn-sec{
+    margin-top:8px; width:100%; padding:11px; border:1px solid var(--border); background:var(--card);
+    border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; color:var(--muted);
+  }
+
+  /* report table */
+  .report-table{width:100%; border-collapse:collapse; margin-top:8px;}
+  .report-table th, .report-table td{padding:9px 6px; border-bottom:1px solid var(--border); font-size:14px; text-align:center;}
+  .report-table th:first-child, .report-table td:first-child{text-align:right;}
+  .report-table th{color:var(--muted); font-size:12.5px; font-weight:700;}
+
+  /* guards manager */
+  .guard-row{display:flex; gap:8px; align-items:center; margin-bottom:8px; padding:8px; border:1px solid var(--border); border-radius:12px; background:var(--bg);}
+  .guard-row input{flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); font-size:14px; font-weight:600;}
+  .guard-row .swatches{display:flex; gap:3px; flex-wrap:wrap; max-width:105px;}
+  .guard-row .swatch{width:16px; height:16px; border-radius:50%; cursor:pointer; border:2px solid transparent;}
+  .guard-row .swatch.selected{border-color:var(--ink);}
+  .guard-row .del{background:none; border:none; font-size:18px; cursor:pointer; padding:2px;}
+  .add-guard-btn{width:100%; padding:12px; border:2px dashed var(--border); border-radius:12px; background:none; font-size:14.5px; font-weight:600; color:var(--muted); cursor:pointer;}
+
+  input[type=file]{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗓️ יומן משמרות</h1>
+  <div class="cal-row">
+    <select id="calendarSelect"></select>
+    <button id="addCalendarBtn" title="יומן חדש">➕</button>
+    <button id="delCalendarBtn" class="danger" title="מחק יומן">🗑️</button>
+  </div>
+  <div class="month-nav">
+    <button id="prevBtn">‹</button>
+    <div class="month-title" id="monthTitle">—</div>
+    <button id="nextBtn">›</button>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="filter-hint" id="filterHint" style="display:none;">
+    מציג רק את הנבחרים <button id="clearFilterBtn">נקה סינון</button>
+  </div>
+</header>
+
+<main>
+  <div class="weekdays">
+    <div>א׳</div><div>ב׳</div><div>ג׳</div><div>ד׳</div><div>ה׳</div><div>ו׳</div><div>ש׳</div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="actions">
+    <button class="primary" id="reportBtn">📊 דוח וסיכום</button>
+    <button id="guardsBtn">👥 שומרים</button>
+  </div>
+  <div class="actions">
+    <button id="exportCsvBtn">⬇️ ייצוא דוח</button>
+    <button id="backupBtn">💾 גיבוי / שחזור</button>
+  </div>
+</main>
+
+<!-- Day Edit Overlay -->
+<div class="overlay" id="dayOverlay">
+  <div class="sheet">
+    <h2 id="dayTitle">עריכת יום</h2>
+    <div class="date-subtitle" id="daySubtitle"></div>
+
+    <!-- Day Shift Section -->
+    <div class="shift-section">
+      <div class="shift-section-header">
+        <span>☀️ משמרת יום (בוקר)</span>
+        <span style="font-size:12px; color:var(--muted);">בחר שומר</span>
+      </div>
+      <div class="shift-options" id="dayShiftList"></div>
+    </div>
+
+    <!-- Night Shift Section -->
+    <div class="shift-section">
+      <div class="shift-section-header">
+        <span>🌙 משמרת לילה</span>
+        <span style="font-size:12px; color:var(--muted);">בחר שומר</span>
+      </div>
+      <div class="shift-options" id="nightShiftList"></div>
+    </div>
+
+    <!-- Note Section -->
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px; font-weight:700; color:var(--muted); display:block; margin-bottom:4px;">📝 הערה ליום זה (אופציונלי):</label>
+      <input type="text" id="dayNoteInput" class="note-input" placeholder="למשל: תגבור, חג, החלפה..." maxlength="40">
+    </div>
+
+    <button class="close" id="daySave">שמור וסגור</button>
+    <button class="btn-sec" id="dayClear" style="color:#e0463e;">🗑️ נקה את כל היום</button>
+  </div>
+</div>
+
+<!-- Report Overlay -->
+<div class="overlay" id="reportOverlay">
+  <div class="sheet">
+    <h2>📊 דוח וסיכום משמרות</h2>
+    <div id="reportBody"></div>
+    <div class="actions" style="margin-top:14px;">
+      <button class="whatsapp" id="shareWhatsAppBtn">📲 שתף סיכום ל-WhatsApp</button>
+    </div>
+    <button class="close" id="reportClose" style="margin-top:8px;">סגור</button>
+  </div>
+</div>
+
+<!-- Guards Overlay -->
+<div class="overlay" id="guardsOverlay">
+  <div class="sheet">
+    <h2>👥 ניהול שומרים</h2>
+    <div id="guardsList"></div>
+    <button class="add-guard-btn" id="addGuardBtn">➕ הוסף שומר חדש</button>
+    <button class="close" id="guardsSave" style="margin-top:14px;">שמור</button>
+  </div>
+</div>
+
+<!-- Backup Overlay -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h2>💾 גיבוי ושחזור נתונים</h2>
+    <p style="font-size:13.5px; color:var(--muted); line-height:1.4; text-align:center;">
+      כל הנתונים נשמרים במכשיר. אפשר להוריד קובץ גיבוי או לשחזר בכל עת.
+    </p>
+    <div class="actions" style="flex-direction:column; gap:8px;">
+      <button id="downloadBackupBtn">⬇️ הורד קובץ גיבוי מלא (JSON)</button>
+      <button id="restoreBackupBtn">⬆️ שחזר נתונים מקובץ גיבוי</button>
+      <input type="file" id="backupFileInput" accept=".json,application/json">
+    </div>
+    <button class="close" id="backupClose" style="margin-top:12px;">סגור</button>
+  </div>
+</div>
+
+<input type="file" id="importCsvFile" accept=".csv,text/csv">
+
+<script>
+(function(){
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    });
+  }
+
+  var STORAGE_KEY_V2 = 'uzi_shift_tracker_v2';
+
+  var PALETTE = [
+    {name:'אדום', color:'#e0463e'},
+    {name:'כחול', color:'#3568e0'},
+    {name:'ירוק', color:'#16a34a'},
+    {name:'סגול', color:'#7c3aed'},
+    {name:'כתום', color:'#f97316'},
+    {name:'טורקיז', color:'#0d9488'},
+    {name:'ורוד', color:'#db2777'},
+    {name:'חרדל', color:'#ca8a04'},
+    {name:'אינדיגו', color:'#4f46e5'},
+    {name:'אפור', color:'#475569'}
+  ];
+
+  var DAY_NAMES_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  var MONTH_NAMES_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+  function uid(prefix){
+    return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function nextColor(usedColors){
+    for(var i=0;i<PALETTE.length;i++){
+      if(usedColors.indexOf(PALETTE[i].color) === -1) return PALETTE[i].color;
+    }
+    return 'hsl(' + Math.floor(Math.random()*360) + ',65%,45%)';
+  }
+
+  function hexToRgb(hex){
+    hex = hex.replace('#','');
+    if(hex.length===3){ hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2]; }
+    var num = parseInt(hex,16);
+    return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
+  }
+  function colorToRgba(color, alpha){
+    if(color.charAt(0) !== '#') return color;
+    var rgb = hexToRgb(color);
+    return 'rgba('+rgb.r+','+rgb.g+','+rgb.b+','+alpha+')';
+  }
+
+  function defaultCalendars(){
+    return {
+      main: {
+        name: 'יומן משמרות ראשי',
+        guards: [
+          { id:'red', name:'אדום', color:'#e0463e' },
+          { id:'blue', name:'כחול', color:'#3568e0' },
+          { id:uid('g'), name:'משה', color:'#16a34a' }
+        ],
+        shifts: {}
+      }
+    };
+  }
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY_V2);
+      if(raw){
+        var s = JSON.parse(raw);
+        if(s && s.calendars && s.order && s.order.length) return s;
+      }
+    }catch(e){}
+
+    var state = { activeCalendarId:'main', order:['main'], calendars:defaultCalendars() };
+    persist(state);
+    return state;
+  }
+
+  function persist(s){ localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(s)); }
+
+  var state = load();
+  function save(){ persist(state); }
+  function cal(){ return state.calendars[state.activeCalendarId]; }
+  function findGuard(id){
+    if(!cal() || !cal().guards) return null;
+    var gs = cal().guards;
+    for(var i=0;i<gs.length;i++){ if(gs[i].id===id) return gs[i]; }
+    return null;
+  }
+
+  // Normalizer for day entry: returns { day: [id, ...], night: [id, ...], note: '' }
+  function getDayEntry(dateKey){
+    var c = cal();
+    var val = c.shifts[dateKey];
+    if(!val) return { day: [], night: [], note: '' };
+    if(Array.isArray(val)) return { day: val.slice(), night: [], note: '' };
+    return {
+      day: Array.isArray(val.day) ? val.day.slice() : [],
+      night: Array.isArray(val.night) ? val.night.slice() : [],
+      note: val.note || ''
+    };
+  }
+
+  function setDayEntry(dateKey, entry){
+    var c = cal();
+    if(!entry || (!entry.day.length && !entry.night.length && !entry.note)){
+      delete c.shifts[dateKey];
+    } else {
+      c.shifts[dateKey] = {
+        day: entry.day || [],
+        night: entry.night || [],
+        note: (entry.note || '').trim()
+      };
+    }
+  }
+
+  var today = new Date();
+  var viewYear = today.getFullYear();
+  var viewMonth = today.getMonth();
+  var selectedKey = null;
+  var tempDayEntry = { day:[], night:[], note:'' };
+  var activeFilters = {};
+
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+  function keyFor(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
+
+  // Calendar Select
+  function renderCalendarSelect(){
+    var sel = document.getElementById('calendarSelect');
+    sel.innerHTML = '';
+    for(var i=0;i<state.order.length;i++){
+      var id = state.order[i];
+      var c = state.calendars[id];
+      if(!c) continue;
+      var opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = c.name;
+      if(id === state.activeCalendarId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  document.getElementById('calendarSelect').addEventListener('change', function(e){
+    state.activeCalendarId = e.target.value;
+    activeFilters = {};
+    save();
+    renderAll();
+  });
+  document.getElementById('addCalendarBtn').addEventListener('click', function(){
+    var name = window.prompt('שם היומן החדש:');
+    if(!name || !name.trim()) return;
+    var id = uid('c');
+    state.calendars[id] = {
+      name: name.trim(),
+      guards: [
+        { id:uid('g'), name:'אדום', color:'#e0463e' },
+        { id:uid('g'), name:'כחול', color:'#3568e0' }
+      ],
+      shifts: {}
+    };
+    state.order.push(id);
+    state.activeCalendarId = id;
+    activeFilters = {};
+    save();
+    renderAll();
+  });
+  document.getElementById('delCalendarBtn').addEventListener('click', function(){
+    if(state.order.length <= 1){
+      alert('חייב להישאר לפחות יומן אחד.');
+      return;
+    }
+    var c = cal();
+    if(!window.confirm('למחוק את היומן "' + c.name + '" וכל הנתונים שלו? אי אפשר לבטל.')) return;
+    delete state.calendars[state.activeCalendarId];
+    state.order = state.order.filter(function(id){ return id !== undefined && state.calendars[id]; });
+    state.activeCalendarId = state.order[0];
+    activeFilters = {};
+    save();
+    renderAll();
+  });
+
+  // Legend / Filter
+  function renderLegend(){
+    var legend = document.getElementById('legend');
+    legend.innerHTML = '';
+    var guards = cal().guards;
+    for(var i=0;i<guards.length;i++){
+      (function(g){
+        var chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.style.setProperty('--chip-color', g.color);
+        if(activeFilters[g.id]) chip.classList.add('active');
+        else if(Object.keys(activeFilters).length) chip.classList.add('dim');
+        var dot = document.createElement('span');
+        dot.className = 'dot';
+        dot.style.background = g.color;
+        chip.appendChild(dot);
+        var label = document.createElement('span');
+        label.textContent = g.name;
+        chip.appendChild(label);
+        chip.addEventListener('click', function(){
+          if(activeFilters[g.id]) delete activeFilters[g.id];
+          else activeFilters[g.id] = true;
+          renderLegend();
+          renderCalendar();
+        });
+        legend.appendChild(chip);
+      })(guards[i]);
+    }
+    var hint = document.getElementById('filterHint');
+    hint.style.display = Object.keys(activeFilters).length ? 'block' : 'none';
+  }
+  document.getElementById('clearFilterBtn').addEventListener('click', function(){
+    activeFilters = {};
+    renderLegend();
+    renderCalendar();
+  });
+
+  // Calendar Grid
+  function renderCalendar(){
+    document.getElementById('monthTitle').textContent = MONTH_NAMES_HE[viewMonth] + ' ' + viewYear;
+    var grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    var hasFilter = Object.keys(activeFilters).length > 0;
+
+    var firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    var daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+
+    for(var i=0;i<firstDay;i++){
+      var empty = document.createElement('div');
+      empty.className = 'day empty';
+      grid.appendChild(empty);
+    }
+
+    for(var d=1; d<=daysInMonth; d++){
+      var key = keyFor(viewYear, viewMonth, d);
+      var cell = document.createElement('div');
+      cell.className = 'day';
+
+      var entry = getDayEntry(key);
+      var dayGuards = entry.day.map(findGuard).filter(Boolean);
+      var nightGuards = entry.night.map(findGuard).filter(Boolean);
+      var allAssigned = dayGuards.concat(nightGuards);
+
+      if(hasFilter){
+        var matches = allAssigned.some(function(g){ return activeFilters[g.id]; });
+        if(!matches) cell.classList.add('dimmed');
+      }
+
+      if(viewYear===today.getFullYear() && viewMonth===today.getMonth() && d===today.getDate()){
+        cell.classList.add('today');
+      }
+
+      var num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = d;
+      cell.appendChild(num);
+
+      var shiftsWrap = document.createElement('div');
+      shiftsWrap.className = 'shifts-wrap';
+
+      // Day Shift Badges
+      for(var dg=0; dg<dayGuards.length; dg++){
+        var b = document.createElement('div');
+        b.className = 'badge day-shift';
+        var icon = document.createElement('span');
+        icon.className = 'badge-icon';
+        icon.textContent = '☀️';
+        b.appendChild(icon);
+        var dot = document.createElement('span');
+        dot.className = 'mini-dot';
+        dot.style.background = dayGuards[dg].color;
+        b.appendChild(dot);
+        var span = document.createElement('span');
+        span.textContent = dayGuards[dg].name;
+        b.appendChild(span);
+        shiftsWrap.appendChild(b);
+      }
+
+      // Night Shift Badges
+      for(var ng=0; ng<nightGuards.length; ng++){
+        var b2 = document.createElement('div');
+        b2.className = 'badge night-shift';
+        var icon2 = document.createElement('span');
+        icon2.className = 'badge-icon';
+        icon2.textContent = '🌙';
+        b2.appendChild(icon2);
+        var dot2 = document.createElement('span');
+        dot2.className = 'mini-dot';
+        dot2.style.background = nightGuards[ng].color;
+        b2.appendChild(dot2);
+        var span2 = document.createElement('span');
+        span2.textContent = nightGuards[ng].name;
+        b2.appendChild(span2);
+        shiftsWrap.appendChild(b2);
+      }
+
+      cell.appendChild(shiftsWrap);
+
+      if(entry.note){
+        var noteDot = document.createElement('div');
+        noteDot.className = 'note-dot';
+        noteDot.textContent = '📝';
+        noteDot.title = entry.note;
+        cell.appendChild(noteDot);
+      }
+
+      // Long press & Tap handler
+      bindDayEvents(cell, key);
+
+      grid.appendChild(cell);
+    }
+  }
+
+  function bindDayEvents(cell, key){
+    var pressTimer = null;
+    var moved = false;
+
+    function startPress(){
+      moved = false;
+      pressTimer = setTimeout(function(){
+        if(navigator.vibrate) try{ navigator.vibrate(40); }catch(e){}
+        openDaySheet(key);
+      }, 380);
+    }
+    function cancelPress(){
+      if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+    }
+
+    cell.addEventListener('touchstart', function(e){
+      startPress();
+    }, {passive:true});
+
+    cell.addEventListener('touchmove', function(){
+      moved = true;
+      cancelPress();
+    }, {passive:true});
+
+    cell.addEventListener('touchend', function(){
+      cancelPress();
+    });
+
+    cell.addEventListener('click', function(){
+      if(!moved){
+        openDaySheet(key);
+      }
+    });
+  }
+
+  // Day Sheet Edit
+  function openDaySheet(key){
+    selectedKey = key;
+    tempDayEntry = getDayEntry(key);
+    var parts = key.split('-');
+    var dObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    var dayOfWeek = DAY_NAMES_HE[dObj.getDay()];
+
+    document.getElementById('dayTitle').textContent = 'עריכת יום ' + dayOfWeek;
+    document.getElementById('daySubtitle').textContent = parts[2] + '/' + parts[1] + '/' + parts[0];
+    document.getElementById('dayNoteInput').value = tempDayEntry.note || '';
+
+    renderSlotGuards('dayShiftList', 'day');
+    renderSlotGuards('nightShiftList', 'night');
+
+    document.getElementById('dayOverlay').classList.add('show');
+  }
+
+  function renderSlotGuards(containerId, slot){
+    var list = document.getElementById(containerId);
+    list.innerHTML = '';
+    var c = cal();
+    var current = tempDayEntry[slot] || [];
+
+    for(var i=0;i<c.guards.length;i++){
+      (function(g){
+        var btn = document.createElement('button');
+        btn.className = 'opt';
+        var selected = current.indexOf(g.id) !== -1;
+        if(selected){
+          btn.classList.add('selected');
+          btn.style.setProperty('--opt-color', g.color);
+          btn.style.setProperty('--opt-bg', colorToRgba(g.color,.15));
+        }
+        var dot = document.createElement('span');
+        dot.className = 'opt-dot';
+        dot.style.background = g.color;
+        btn.appendChild(dot);
+
+        var label = document.createElement('span');
+        label.textContent = g.name;
+        btn.appendChild(label);
+
+        if(selected){
+          var check = document.createElement('span');
+          check.className = 'check';
+          check.textContent = '✓';
+          btn.appendChild(check);
+        }
+
+        btn.addEventListener('click', function(){
+          var idx = tempDayEntry[slot].indexOf(g.id);
+          if(idx !== -1){
+            tempDayEntry[slot].splice(idx, 1);
+          } else {
+            tempDayEntry[slot].push(g.id);
+          }
+          renderSlotGuards(containerId, slot);
+        });
+
+        list.appendChild(btn);
+      })(c.guards[i]);
+    }
+  }
+
+  document.getElementById('daySave').addEventListener('click', function(){
+    if(selectedKey){
+      tempDayEntry.note = document.getElementById('dayNoteInput').value;
+      setDayEntry(selectedKey, tempDayEntry);
+      save();
+      renderCalendar();
+    }
+    closeDaySheet();
+  });
+
+  document.getElementById('dayClear').addEventListener('click', function(){
+    if(selectedKey){
+      setDayEntry(selectedKey, null);
+      save();
+      renderCalendar();
+    }
+    closeDaySheet();
+  });
+
+  function closeDaySheet(){
+    document.getElementById('dayOverlay').classList.remove('show');
+    selectedKey = null;
+  }
+  document.getElementById('dayOverlay').addEventListener('click', function(e){
+    if(e.target === this) closeDaySheet();
+  });
+
+  document.getElementById('prevBtn').addEventListener('click', function(){
+    viewMonth--; if(viewMonth<0){viewMonth=11; viewYear--;}
+    renderCalendar();
+  });
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    viewMonth++; if(viewMonth>11){viewMonth=0; viewYear++;}
+    renderCalendar();
+  });
+
+  // Report & WhatsApp Share
+  var currentMonthReportText = '';
+
+  function openReport(){
+    var c = cal();
+    var monthPrefix = viewYear + '-' + pad(viewMonth+1);
+    var guards = c.guards;
+
+    var dayCounts = {}, nightCounts = {}, totalCounts = {};
+    var mDayCounts = {}, mNightCounts = {}, mTotalCounts = {};
+
+    for(var i=0;i<guards.length;i++){
+      var gid = guards[i].id;
+      dayCounts[gid] = 0; nightCounts[gid] = 0; totalCounts[gid] = 0;
+      mDayCounts[gid] = 0; mNightCounts[gid] = 0; mTotalCounts[gid] = 0;
+    }
+
+    var monthActiveDays = 0;
+
+    for(var k in c.shifts){
+      var entry = getDayEntry(k);
+      var inMonth = k.indexOf(monthPrefix) === 0;
+      if(inMonth && (entry.day.length || entry.night.length)) monthActiveDays++;
+
+      for(var d=0; d<entry.day.length; d++){
+        var id = entry.day[d];
+        if(dayCounts[id] !== undefined){ dayCounts[id]++; totalCounts[id]++; }
+        if(inMonth && mDayCounts[id] !== undefined){ mDayCounts[id]++; mTotalCounts[id]++; }
+      }
+      for(var n=0; n<entry.night.length; n++){
+        var id2 = entry.night[n];
+        if(nightCounts[id2] !== undefined){ nightCounts[id2]++; totalCounts[id2]++; }
+        if(inMonth && mNightCounts[id2] !== undefined){ mNightCounts[id2]++; mTotalCounts[id2]++; }
+      }
+    }
+
+    var html = '<div style="font-size:14.5px;font-weight:700;margin-bottom:8px;">'
+      + c.name + ' — ' + MONTH_NAMES_HE[viewMonth] + ' ' + viewYear + '</div>';
+
+    html += '<table class="report-table"><thead><tr><th>שומר</th><th>☀️ יום</th><th>🌙 לילה</th><th>סה״כ</th></tr></thead><tbody>';
+    for(var i=0;i<guards.length;i++){
+      var g = guards[i];
+      html += '<tr><td><span class="dot" style="background:'+g.color+'; margin-left:5px;"></span>'+g.name+'</td>'
+        + '<td>'+mDayCounts[g.id]+'</td><td>'+mNightCounts[g.id]+'</td><td><b>'+mTotalCounts[g.id]+'</b></td></tr>';
+    }
+    html += '</tbody></table>';
+    html += '<div style="font-size:12.5px; color:var(--muted); margin-top:8px;">סה״כ ימים עם משמרות החודש: <b>' + monthActiveDays + '</b></div>';
+
+    // Prepare WhatsApp text
+    var lines = [];
+    lines.push('🗓️ *דוח משמרות — ' + c.name + '*');
+    lines.push('📅 *חודש:* ' + MONTH_NAMES_HE[viewMonth] + ' ' + viewYear);
+    lines.push('');
+    lines.push('☀️ *משמרות יום:*');
+    for(var i=0;i<guards.length;i++){
+      if(mDayCounts[guards[i].id] > 0){
+        lines.push('• ' + guards[i].name + ': ' + mDayCounts[guards[i].id]);
+      }
+    }
+    lines.push('');
+    lines.push('🌙 *משמרות לילה:*');
+    for(var i=0;i<guards.length;i++){
+      if(mNightCounts[guards[i].id] > 0){
+        lines.push('• ' + guards[i].name + ': ' + mNightCounts[guards[i].id]);
+      }
+    }
+    lines.push('');
+    lines.push('📊 *סה״כ משמרות לחודש:*');
+    for(var i=0;i<guards.length;i++){
+      lines.push('• ' + guards[i].name + ': ' + mTotalCounts[guards[i].id]);
+    }
+    lines.push('');
+    lines.push('ימים פעילים: ' + monthActiveDays);
+
+    currentMonthReportText = lines.join('\n');
+
+    document.getElementById('reportBody').innerHTML = html;
+    document.getElementById('reportOverlay').classList.add('show');
+  }
+
+  document.getElementById('reportBtn').addEventListener('click', openReport);
+  document.getElementById('reportClose').addEventListener('click', function(){
+    document.getElementById('reportOverlay').classList.remove('show');
+  });
+  document.getElementById('reportOverlay').addEventListener('click', function(e){
+    if(e.target === this) this.classList.remove('show');
+  });
+
+  document.getElementById('shareWhatsAppBtn').addEventListener('click', function(){
+    if(!currentMonthReportText) return;
+    var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(currentMonthReportText);
+    window.open(waUrl, '_blank');
+  });
+
+  // Guards Management
+  function openGuards(){
+    renderGuardsList();
+    document.getElementById('guardsOverlay').classList.add('show');
+  }
+  function renderGuardsList(){
+    var wrap = document.getElementById('guardsList');
+    wrap.innerHTML = '';
+    var c = cal();
+    for(var i=0;i<c.guards.length;i++){
+      (function(g, idx){
+        var row = document.createElement('div');
+        row.className = 'guard-row';
+
+        var input = document.createElement('input');
+        input.value = g.name;
+        input.maxLength = 20;
+        input.addEventListener('input', function(){ g.name = input.value; });
+        row.appendChild(input);
+
+        var swatches = document.createElement('div');
+        swatches.className = 'swatches';
+        for(var s=0;s<PALETTE.length;s++){
+          (function(colorOpt){
+            var sw = document.createElement('div');
+            sw.className = 'swatch';
+            sw.style.background = colorOpt.color;
+            if(g.color === colorOpt.color) sw.classList.add('selected');
+            sw.addEventListener('click', function(){
+              g.color = colorOpt.color;
+              renderGuardsList();
+            });
+            swatches.appendChild(sw);
+          })(PALETTE[s]);
+        }
+        row.appendChild(swatches);
+
+        var del = document.createElement('button');
+        del.className = 'del';
+        del.textContent = '🗑️';
+        del.addEventListener('click', function(){
+          if(c.guards.length <= 1){
+            alert('חייב להישאר לפחות שומר אחד ביומן.');
+            return;
+          }
+          c.guards.splice(idx,1);
+          renderGuardsList();
+        });
+        row.appendChild(del);
+
+        wrap.appendChild(row);
+      })(c.guards[i], i);
+    }
+  }
+  document.getElementById('guardsBtn').addEventListener('click', openGuards);
+  document.getElementById('addGuardBtn').addEventListener('click', function(){
+    var c = cal();
+    var used = c.guards.map(function(g){ return g.color; });
+    c.guards.push({ id:uid('g'), name:'שומר ' + (c.guards.length+1), color: nextColor(used) });
+    renderGuardsList();
+  });
+  document.getElementById('guardsSave').addEventListener('click', function(){
+    save();
+    renderCalendarSelect();
+    renderLegend();
+    renderCalendar();
+    document.getElementById('guardsOverlay').classList.remove('show');
+  });
+  document.getElementById('guardsOverlay').addEventListener('click', function(e){
+    if(e.target === this) this.classList.remove('show');
+  });
+
+  // Backup & Restore
+  document.getElementById('backupBtn').addEventListener('click', function(){
+    document.getElementById('backupOverlay').classList.add('show');
+  });
+  document.getElementById('backupClose').addEventListener('click', function(){
+    document.getElementById('backupOverlay').classList.remove('show');
+  });
+  document.getElementById('backupOverlay').addEventListener('click', function(e){
+    if(e.target === this) this.classList.remove('show');
+  });
+
+  document.getElementById('downloadBackupBtn').addEventListener('click', function(){
+    var dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state, null, 2));
+    var a = document.createElement('a');
+    a.href = dataStr;
+    a.download = 'גיבוי_משמרות_' + keyFor(viewYear, viewMonth, today.getDate()) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+  document.getElementById('restoreBackupBtn').addEventListener('click', function(){
+    document.getElementById('backupFileInput').click();
+  });
+
+  document.getElementById('backupFileInput').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var restored = JSON.parse(reader.result);
+        if(restored && restored.calendars && restored.order){
+          state = restored;
+          save();
+          renderAll();
+          alert('הנתונים שוחזרו בהצלחה!');
+          document.getElementById('backupOverlay').classList.remove('show');
+        } else {
+          alert('קובץ הגיבוי אינו תקין.');
+        }
+      }catch(err){
+        alert('שגיאה בקריאת הקובץ.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Export CSV
+  function csvEscape(v){
+    return '"' + String(v||'').replace(/"/g,'""') + '"';
+  }
+  document.getElementById('exportCsvBtn').addEventListener('click', function(){
+    var c = cal();
+    var lines = [csvEscape('תאריך') + ',' + csvEscape('משמרת יום') + ',' + csvEscape('משמרת לילה') + ',' + csvEscape('הערה')];
+    var keys = Object.keys(c.shifts).sort();
+    for(var i=0;i<keys.length;i++){
+      var entry = getDayEntry(keys[i]);
+      var dayNames = entry.day.map(findGuard).filter(Boolean).map(function(g){ return g.name; }).join('; ');
+      var nightNames = entry.night.map(findGuard).filter(Boolean).map(function(g){ return g.name; }).join('; ');
+      lines.push(csvEscape(keys[i]) + ',' + csvEscape(dayNames) + ',' + csvEscape(nightNames) + ',' + csvEscape(entry.note));
+    }
+    var csv = '﻿' + lines.join('\r\n');
+    var blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = c.name.replace(/[\\/:*?"<>|]/g,'_') + '_משמרות.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  function renderAll(){
+    renderCalendarSelect();
+    renderLegend();
+    renderCalendar();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

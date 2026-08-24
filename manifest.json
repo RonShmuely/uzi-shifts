@@ -1,0 +1,18 @@
+{
+  "name": "יומן משמרות",
+  "short_name": "משמרות",
+  "description": "ניהול ומעקב משמרות שומרים יום ולילה",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#1c1e21",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
