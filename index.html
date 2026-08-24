@@ -239,6 +239,32 @@
   .color-swatch-circle:active{transform:scale(0.9);}
   .color-swatch-circle.selected{border-color:var(--ink); transform:scale(1.08);}
 
+  /* Dark Theme */
+  body.dark-theme{
+    --bg:#0f172a; --card:#1e293b; --ink:#f8fafc; --muted:#94a3b8;
+    --border:#334155; --accent:#60a5fa; --day-bg:#3b2d13; --day-text:#fef08a;
+    --night-bg:#2e1065; --night-text:#ddd6fe;
+  }
+  body.dark-theme select, body.dark-theme input{background:#0f172a !important; color:#f8fafc !important; border-color:#334155 !important;}
+  body.dark-theme .top-bar button, body.dark-theme .month-nav button, body.dark-theme .bottom-bar button{
+    background:#1e293b; color:#f8fafc; border-color:#334155;
+  }
+  body.dark-theme .top-bar button:active, body.dark-theme .month-nav button:active, body.dark-theme .bottom-bar button:active{background:#334155;}
+  body.dark-theme .bottom-bar button.primary{background:#3b82f6; color:#fff; border:none;}
+  body.dark-theme .day{background:#1e293b; border-color:#334155;}
+  body.dark-theme .day .num{color:#cbd5e1;}
+  body.dark-theme .day.today{border-color:#60a5fa; background:#1e293b;}
+  body.dark-theme .day.today .num{color:#60a5fa;}
+  body.dark-theme .sheet{background:#1e293b; color:#f8fafc;}
+  body.dark-theme .modal-section{background:#0f172a; border-color:#334155;}
+  body.dark-theme .modal-section-title{color:#f8fafc;}
+  body.dark-theme .sheet button.opt{background:#1e293b; color:#f8fafc; border-color:#334155;}
+  body.dark-theme .sheet .btn-sec{background:#0f172a; color:#f8fafc; border-color:#334155;}
+  body.dark-theme .guard-row{background:#0f172a; border-color:#334155;}
+  body.dark-theme .guard-row input{background:#1e293b; color:#f8fafc; border-color:#334155;}
+  body.dark-theme .color-picker-card{background:#1e293b; color:#f8fafc;}
+  body.dark-theme .drag-handle{background:#475569;}
+
   input[type=file]{display:none;}
 </style>
 </head>
@@ -250,7 +276,7 @@
       <div class="title">🗓️ משמרות:</div>
       <select id="calendarSelect"></select>
       <button id="addCalendarBtn" title="יומן חדש">➕</button>
-      <button id="settingsTopBtn" title="הגדרות וניהול">⚙️</button>
+      <button id="themeToggleBtn" title="מצב כהה / בהיר">🌙</button>
     </div>
     <div class="month-nav">
       <button id="prevBtn">‹</button>
@@ -1055,12 +1081,33 @@
   function closeSettings(){
     document.getElementById('settingsOverlay').classList.remove('show');
   }
-  document.getElementById('settingsTopBtn').addEventListener('click', openSettings);
   document.getElementById('settingsBtn').addEventListener('click', openSettings);
   document.getElementById('settingsClose').addEventListener('click', closeSettings);
   document.getElementById('settingsOverlay').addEventListener('click', function(e){
     if(e.target === this) closeSettings();
   });
+
+  // Dark / Light Theme
+  var currentTheme = localStorage.getItem('uzi_shift_theme') || 'light';
+  function applyTheme(t){
+    currentTheme = t;
+    var btn = document.getElementById('themeToggleBtn');
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if(currentTheme === 'dark'){
+      document.body.classList.add('dark-theme');
+      if(btn){ btn.textContent = '☀️'; btn.title = 'מעבר למצב יום'; }
+      if(meta) meta.setAttribute('content', '#0f172a');
+    } else {
+      document.body.classList.remove('dark-theme');
+      if(btn){ btn.textContent = '🌙'; btn.title = 'מעבר למצב לילה'; }
+      if(meta) meta.setAttribute('content', '#f8fafc');
+    }
+    localStorage.setItem('uzi_shift_theme', currentTheme);
+  }
+  document.getElementById('themeToggleBtn').addEventListener('click', function(){
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  });
+  applyTheme(currentTheme);
 
   document.getElementById('settingsNewCalBtn').addEventListener('click', function(){
     closeSettings();
