@@ -631,8 +631,12 @@
         label.textContent = g.name;
         chip.appendChild(label);
         chip.addEventListener('click', function(){
-          if(activeFilters[g.id]) delete activeFilters[g.id];
-          else activeFilters[g.id] = true;
+          if(activeFilters[g.id]) {
+            activeFilters = {};
+          } else {
+            activeFilters = {};
+            activeFilters[g.id] = true;
+          }
           renderLegend();
           renderCalendar();
         });
@@ -673,8 +677,9 @@
       var nightGuards = entry.night.map(findGuard).filter(Boolean);
       var allAssigned = dayGuards.concat(nightGuards);
 
+      var matches = true;
       if(hasFilter){
-        var matches = allAssigned.some(function(g){ return activeFilters[g.id]; });
+        matches = allAssigned.some(function(g){ return activeFilters[g.id]; });
         if(!matches) cell.classList.add('dimmed');
       }
 
@@ -690,8 +695,12 @@
       var shiftsWrap = document.createElement('div');
       shiftsWrap.className = 'shifts-wrap';
 
+      // When filter is active: only show badges of the selected person
+      var visibleDayGuards = hasFilter ? dayGuards.filter(function(g){ return activeFilters[g.id]; }) : dayGuards;
+      var visibleNightGuards = hasFilter ? nightGuards.filter(function(g){ return activeFilters[g.id]; }) : nightGuards;
+
       // Day Badges
-      for(var dg=0; dg<dayGuards.length; dg++){
+      for(var dg=0; dg<visibleDayGuards.length; dg++){
         var b = document.createElement('div');
         b.className = 'badge day-shift';
         var icon = document.createElement('span');
@@ -700,17 +709,17 @@
         b.appendChild(icon);
         var dot = document.createElement('span');
         dot.className = 'mini-dot';
-        dot.style.background = dayGuards[dg].color;
+        dot.style.background = visibleDayGuards[dg].color;
         b.appendChild(dot);
         var span = document.createElement('span');
         span.className = 'bname';
-        span.textContent = dayGuards[dg].name;
+        span.textContent = visibleDayGuards[dg].name;
         b.appendChild(span);
         shiftsWrap.appendChild(b);
       }
 
       // Night Badges
-      for(var ng=0; ng<nightGuards.length; ng++){
+      for(var ng=0; ng<visibleNightGuards.length; ng++){
         var b2 = document.createElement('div');
         b2.className = 'badge night-shift';
         var icon2 = document.createElement('span');
@@ -719,18 +728,18 @@
         b2.appendChild(icon2);
         var dot2 = document.createElement('span');
         dot2.className = 'mini-dot';
-        dot2.style.background = nightGuards[ng].color;
+        dot2.style.background = visibleNightGuards[ng].color;
         b2.appendChild(dot2);
         var span2 = document.createElement('span');
         span2.className = 'bname';
-        span2.textContent = nightGuards[ng].name;
+        span2.textContent = visibleNightGuards[ng].name;
         b2.appendChild(span2);
         shiftsWrap.appendChild(b2);
       }
 
       cell.appendChild(shiftsWrap);
 
-      if(entry.note){
+      if(entry.note && (!hasFilter || matches)){
         var noteDot = document.createElement('div');
         noteDot.className = 'note-dot';
         noteDot.textContent = '📝';
@@ -742,7 +751,6 @@
       grid.appendChild(cell);
     }
   }
-
   function bindDayEvents(cell, key){
     var pressTimer = null;
     var moved = false;
