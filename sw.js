@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uzi-shifts-v4';
+const CACHE_NAME = 'uzi-shifts-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -30,10 +30,12 @@ self.addEventListener('fetch', (e) => {
   if (e.request.mode === 'navigate' || e.request.destination === 'document') {
     e.respondWith(
       fetch(e.request).then((res) => {
+        // A host outage (404/5xx) must never replace the working copy
+        if (!res.ok) throw new Error('bad response ' + res.status);
         const copy = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
         return res;
-      }).catch(() => caches.match(e.request) || caches.match('./index.html'))
+      }).catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
     );
     return;
   }
@@ -43,6 +45,7 @@ self.addEventListener('fetch', (e) => {
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
       return fetch(e.request).then((networkRes) => {
+        if (!networkRes.ok) return networkRes;
         const copy = networkRes.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
         return networkRes;
